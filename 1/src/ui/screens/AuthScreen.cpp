@@ -5,6 +5,7 @@
 #include "ui/UiContracts.h"
 
 #include <algorithm>
+#include <string_view>
 
 namespace serein::ui {
 namespace {
@@ -57,6 +58,13 @@ void draw_eye_icon(ImDrawList* draw, const ImVec2 center, const bool active, con
     draw->AddCircleFilled(center, 2.0F * scale, color, 16);
 }
 
+template <std::size_t Size>
+void copy_to_buffer(const std::string_view value, std::array<char, Size>& buffer) {
+    buffer.fill('\0');
+    const std::size_t length = std::min(value.size(), buffer.size() - 1U);
+    std::copy_n(value.data(), length, buffer.data());
+}
+
 }  // namespace
 
 AuthScreen::AuthScreen() {
@@ -71,6 +79,15 @@ void AuthScreen::render(AppModel& model,
                         const float time_seconds,
                         const float alpha) {
     static_cast<void>(time_seconds);
+    if (!initialized_from_model_) {
+        if (!model.username_input().empty()) {
+            copy_to_buffer(model.username_input(), username_);
+        }
+        if (!model.password_input().empty()) {
+            copy_to_buffer(model.password_input(), password_);
+        }
+        initialized_from_model_ = true;
+    }
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, std::clamp(alpha, 0.0F, 1.0F));
     ImDrawList* draw = ImGui::GetWindowDrawList();
 
@@ -110,7 +127,7 @@ void AuthScreen::render(AppModel& model,
     gradient_text(draw,
                   font_at(1),
                   auth_brand_font_size * reference_scale,
-                  point(17.0F, 53.5F),
+                  point(17.0F, auth_brand_y),
                   "Serein",
                   IM_COL32(184, 49, 172, 255),
                   IM_COL32(72, 25, 70, 178));
@@ -170,17 +187,17 @@ void AuthScreen::render(AppModel& model,
     const float remember_width = remember_control_width(check_size.x, 8.0F, remember_label_size.x);
     ImGui::SetCursorScreenPos(remember_min);
     if (ImGui::InvisibleButton("##remember-me", ImVec2{remember_width, check_size.y})) {
-        remember_me_ = !remember_me_;
+        model.set_remember_me(!model.remember_me());
     }
     const bool remember_hovered = ImGui::IsItemHovered();
-    draw->AddRectFilled(remember_min, remember_min + check_size, rgba(remember_me_ ? purple : field_color), 3.0F);
+    draw->AddRectFilled(remember_min, remember_min + check_size, rgba(model.remember_me() ? purple : field_color), 3.0F);
     draw->AddRect(remember_min,
                   remember_min + check_size,
-                  rgba(remember_me_ || remember_hovered ? purple : field_border),
+                  rgba(model.remember_me() || remember_hovered ? purple : field_border),
                   3.0F,
                   0,
                   1.0F);
-    if (remember_me_) {
+    if (model.remember_me()) {
         draw->AddLine(remember_min + ImVec2{4.5F, 9.5F}, remember_min + ImVec2{8.0F, 13.0F}, rgba(primary_text), 1.7F);
         draw->AddLine(remember_min + ImVec2{8.0F, 13.0F}, remember_min + ImVec2{15.0F, 5.5F}, rgba(primary_text), 1.7F);
     }
@@ -219,7 +236,9 @@ void AuthScreen::render(AppModel& model,
                                       keyboard_intent(ImGui::IsKeyPressed(ImGuiKey_Enter), false) == KeyboardIntent::submit;
     if (continue_pressed || submit_with_keyboard) {
         model.set_credentials(username_.data(), password_.data());
-        static_cast<void>(model.submit_login());
+        if (model.submit_login()) {
+            password_.fill('\0');
+        }
     }
 
     if (!model.login_error().empty()) {

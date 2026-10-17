@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(SereinLoader VERSION 0.4.0 LANGUAGES CXX)
+project(SereinLoader VERSION 0.5.0 LANGUAGES CXX)
 
 option(SEREIN_BUILD_APP "Build the Windows Serein loader" ON)
 option(SEREIN_BUILD_TESTS "Build Serein unit tests" ON)
@@ -56,12 +56,14 @@ if(SEREIN_BUILD_TESTS)
     if(WIN32)
         add_executable(serein_platform_contract_tests
             tests/PlatformContractTests.cpp
+            src/platform/ProcessLauncher.cpp
+            src/platform/WindowsCredentialStore.cpp
             src/render/D3D11Renderer.cpp
             src/render/TextureStore.cpp
         )
         target_include_directories(serein_platform_contract_tests PRIVATE src)
         target_compile_features(serein_platform_contract_tests PRIVATE cxx_std_20)
-        target_link_libraries(serein_platform_contract_tests PRIVATE d3d11 d3dcompiler dxgi windowscodecs)
+        target_link_libraries(serein_platform_contract_tests PRIVATE crypt32 d3d11 d3dcompiler dxgi ole32 shell32 windowscodecs)
         if(MSVC)
             target_compile_options(serein_platform_contract_tests PRIVATE /W4 /permissive- /EHsc)
         endif()
@@ -82,6 +84,8 @@ if(SEREIN_BUILD_APP)
         src/integration/MockServices.cpp
         src/platform/Win32Application.cpp
         src/platform/FrameCapture.cpp
+        src/platform/ProcessLauncher.cpp
+        src/platform/WindowsCredentialStore.cpp
         src/render/D3D11Renderer.cpp
         src/render/TextureStore.cpp
         src/ui/Theme.cpp
@@ -110,6 +114,8 @@ if(SEREIN_BUILD_APP)
         dxgi
         windowscodecs
         dwmapi
+        crypt32
+        ole32
         shell32
     )
     if(MSVC)

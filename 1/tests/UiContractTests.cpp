@@ -20,7 +20,8 @@ void expect(const bool value, const char* message) {
 int main() {
     using namespace serein::ui;
     expect(auth_welcome_font_size == 31.5F, "login heading uses the measured reference scale");
-    expect(auth_brand_font_size == 22.5F, "brand line preserves the smaller reference hierarchy");
+    expect(auth_brand_font_size == 26.0F, "Serein brand line uses the requested larger display size");
+    expect(auth_brand_y == 48.5F, "Serein brand line uses the requested higher baseline");
     expect(button_text_size == 18.5F, "button labels use a stronger readable size");
     expect(discovery_loading_font_size == 21.0F, "discovery loading copy matches the reference proportion");
     expect(button_corner_radius == 8.0F, "buttons use the slightly rounder final radius");

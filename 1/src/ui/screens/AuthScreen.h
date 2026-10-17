@@ -17,7 +17,7 @@ public:
 private:
     std::array<char, 64> username_{};
     std::array<char, 64> password_{};
-    bool remember_me_{false};
+    bool initialized_from_model_{false};
 };
 
 }  // namespace serein::ui

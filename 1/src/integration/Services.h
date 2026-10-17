@@ -4,6 +4,7 @@
 
 #include <string>
 #include <string_view>
+#include <optional>
 
 namespace serein {
 
@@ -12,6 +13,19 @@ enum class OperationState {
     working,
     succeeded,
     failed,
+};
+
+struct RememberedCredentials {
+    std::string username;
+    std::string password;
+};
+
+class ICredentialStore {
+public:
+    virtual ~ICredentialStore() = default;
+    [[nodiscard]] virtual std::optional<RememberedCredentials> load() = 0;
+    virtual bool save(const RememberedCredentials& credentials) = 0;
+    virtual bool clear() = 0;
 };
 
 class IAuthenticator {

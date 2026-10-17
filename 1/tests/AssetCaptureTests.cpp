@@ -21,6 +21,11 @@ int main() {
         std::cerr << "Configured background asset is missing.\n";
         return EXIT_FAILURE;
     }
+    if (config.assets.promotional != "Assets/Serein Hazmat Warrior Thumbnail.png" ||
+        !std::filesystem::exists(source_root / config.assets.promotional)) {
+        std::cerr << "Configured login artwork is missing or incorrect.\n";
+        return EXIT_FAILURE;
+    }
     for (const auto& product : config.products) {
         if (!std::filesystem::exists(source_root / product.image_path)) {
             std::cerr << "Configured product asset is missing: " << product.image_path << '\n';

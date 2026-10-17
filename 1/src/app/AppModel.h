@@ -21,7 +21,8 @@ class AppModel {
 public:
     AppModel(AppConfig config,
              std::shared_ptr<IAuthenticator> authenticator,
-             std::shared_ptr<IProductLoader> product_loader);
+             std::shared_ptr<IProductLoader> product_loader,
+             std::shared_ptr<ICredentialStore> credential_store = nullptr);
 
     void update(float delta_seconds);
     void set_credentials(std::string username, std::string password);
@@ -32,6 +33,7 @@ public:
     void dismiss_load_result();
     void set_settings_open(bool open) noexcept;
     void set_password_reveal_held(bool held) noexcept;
+    void set_remember_me(bool remember);
 
     [[nodiscard]] const AppConfig& config() const noexcept;
     [[nodiscard]] Screen screen() const noexcept;
@@ -43,6 +45,7 @@ public:
     [[nodiscard]] std::optional<std::size_t> selected_product_index() const noexcept;
     [[nodiscard]] bool settings_open() const noexcept;
     [[nodiscard]] bool password_reveal_held() const noexcept;
+    [[nodiscard]] bool remember_me() const noexcept;
     [[nodiscard]] OperationState load_state() const noexcept;
     [[nodiscard]] float load_progress() const noexcept;
     [[nodiscard]] std::string_view load_message() const noexcept;
@@ -52,6 +55,7 @@ private:
     AppConfig config_;
     std::shared_ptr<IAuthenticator> authenticator_;
     std::shared_ptr<IProductLoader> product_loader_;
+    std::shared_ptr<ICredentialStore> credential_store_;
     Screen screen_{Screen::authentication};
     std::string username_input_;
     std::string password_input_;
@@ -61,6 +65,7 @@ private:
     float product_discovery_elapsed_{0.0F};
     bool settings_open_{false};
     bool password_reveal_held_{false};
+    bool remember_me_{false};
 };
 
 }  // namespace serein

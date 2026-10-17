@@ -8,12 +8,22 @@ namespace serein {
 
 AppModel::AppModel(AppConfig config,
                    std::shared_ptr<IAuthenticator> authenticator,
-                   std::shared_ptr<IProductLoader> product_loader)
+                   std::shared_ptr<IProductLoader> product_loader,
+                   std::shared_ptr<ICredentialStore> credential_store)
     : config_(std::move(config)),
       authenticator_(std::move(authenticator)),
-      product_loader_(std::move(product_loader)) {
+      product_loader_(std::move(product_loader)),
+      credential_store_(std::move(credential_store)) {
     if (!authenticator_ || !product_loader_) {
         throw std::invalid_argument{"Serein services must not be null"};
+    }
+    if (credential_store_) {
+        const std::optional<RememberedCredentials> remembered = credential_store_->load();
+        if (remembered.has_value() && !remembered->username.empty() && !remembered->password.empty()) {
+            username_input_ = remembered->username;
+            password_input_ = remembered->password;
+            remember_me_ = true;
+        }
     }
 }
 
@@ -43,6 +53,9 @@ bool AppModel::submit_login() {
     if (!authenticator_->authenticate(username_input_, password_input_)) {
         login_error_ = "Enter a username and password to continue.";
         return false;
+    }
+    if (remember_me_ && credential_store_) {
+        static_cast<void>(credential_store_->save(RememberedCredentials{username_input_, password_input_}));
     }
     current_user_ = username_input_;
     password_input_.clear();
@@ -88,6 +101,13 @@ void AppModel::set_password_reveal_held(const bool held) noexcept {
     password_reveal_held_ = held;
 }
 
+void AppModel::set_remember_me(const bool remember) {
+    remember_me_ = remember;
+    if (!remember_me_ && credential_store_) {
+        static_cast<void>(credential_store_->clear());
+    }
+}
+
 const AppConfig& AppModel::config() const noexcept {
     return config_;
 }
@@ -129,6 +149,10 @@ bool AppModel::settings_open() const noexcept {
 
 bool AppModel::password_reveal_held() const noexcept {
     return password_reveal_held_;
+}
+
+bool AppModel::remember_me() const noexcept {
+    return remember_me_;
 }
 
 OperationState AppModel::load_state() const noexcept {

@@ -6,6 +6,8 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <optional>
+#include <string>
 #include <string_view>
 
 namespace {
@@ -19,6 +21,37 @@ void expect(const bool condition, const std::string_view message) {
     }
 }
 
+class RecordingCredentialStore final : public serein::ICredentialStore {
+public:
+    [[nodiscard]] std::optional<serein::RememberedCredentials> load() override {
+        return loaded;
+    }
+
+    bool save(const serein::RememberedCredentials& credentials) override {
+        saved = credentials;
+        ++save_calls;
+        return true;
+    }
+
+    bool clear() override {
+        saved.reset();
+        ++clear_calls;
+        return true;
+    }
+
+    std::optional<serein::RememberedCredentials> loaded;
+    std::optional<serein::RememberedCredentials> saved;
+    int save_calls{0};
+    int clear_calls{0};
+};
+
+class RejectingAuthenticator final : public serein::IAuthenticator {
+public:
+    [[nodiscard]] bool authenticate(std::string_view, std::string_view) override {
+        return false;
+    }
+};
+
 void advance(serein::AppModel& model, const float seconds, const float step = 1.0F / 120.0F) {
     float elapsed = 0.0F;
     while (elapsed < seconds) {
@@ -29,7 +62,7 @@ void advance(serein::AppModel& model, const float seconds, const float step = 1.
 
 void test_default_configuration_exposes_four_products_and_semver() {
     const auto config = serein::make_default_config();
-    expect(config.version == "0.4.0", "final-polish release is version 0.4.0");
+    expect(config.version == "0.5.0", "remembered-login release is version 0.5.0");
     expect(config.products.size() == 4U, "four products remain accessible");
     expect(config.products[0].name == "Rust", "Rust is the first product");
     expect(config.products[3].name == "Counter-Strike 2", "Counter-Strike 2 is the fourth product");
@@ -123,6 +156,59 @@ void test_password_reveal_tracks_only_active_hold() {
     expect(!model.password_reveal_held(), "password hides immediately on release");
 }
 
+void test_remembered_credentials_are_loaded_into_the_login_model() {
+    auto auth = std::make_shared<serein::MockAuthenticator>();
+    auto loader = std::make_shared<serein::MockProductLoader>();
+    auto store = std::make_shared<RecordingCredentialStore>();
+    store->loaded = serein::RememberedCredentials{"saved.user", "saved-pass"};
+
+    serein::AppModel model{serein::make_default_config(), auth, loader, store};
+
+    expect(model.remember_me(), "loaded credentials restore the remember-me toggle");
+    expect(model.username_input() == "saved.user", "loaded username repopulates the login field");
+    expect(model.password_input() == "saved-pass", "loaded password repopulates the login field");
+}
+
+void test_successful_login_saves_only_when_remember_me_is_enabled() {
+    auto auth = std::make_shared<serein::MockAuthenticator>();
+    auto loader = std::make_shared<serein::MockProductLoader>();
+    auto store = std::make_shared<RecordingCredentialStore>();
+    serein::AppModel model{serein::make_default_config(), auth, loader, store};
+
+    model.set_remember_me(true);
+    model.set_credentials("remembered.user", "remembered-pass");
+    expect(model.submit_login(), "fixture login succeeds");
+    expect(store->save_calls == 1, "successful remembered login writes exactly once");
+    expect(store->saved.has_value(), "successful remembered login stores credentials");
+    expect(store->saved->username == "remembered.user", "stored username matches the accepted input");
+    expect(store->saved->password == "remembered-pass", "stored password matches the accepted input");
+}
+
+void test_failed_login_does_not_overwrite_saved_credentials() {
+    auto auth = std::make_shared<RejectingAuthenticator>();
+    auto loader = std::make_shared<serein::MockProductLoader>();
+    auto store = std::make_shared<RecordingCredentialStore>();
+    serein::AppModel model{serein::make_default_config(), auth, loader, store};
+
+    model.set_remember_me(true);
+    model.set_credentials("wrong.user", "wrong-pass");
+    expect(!model.submit_login(), "fixture login is rejected");
+    expect(store->save_calls == 0, "failed login never overwrites saved credentials");
+}
+
+void test_disabling_remember_me_clears_saved_credentials() {
+    auto auth = std::make_shared<serein::MockAuthenticator>();
+    auto loader = std::make_shared<serein::MockProductLoader>();
+    auto store = std::make_shared<RecordingCredentialStore>();
+    store->loaded = serein::RememberedCredentials{"saved.user", "saved-pass"};
+    serein::AppModel model{serein::make_default_config(), auth, loader, store};
+
+    model.set_remember_me(false);
+
+    expect(!model.remember_me(), "toggle turns off immediately");
+    expect(store->clear_calls == 1, "turning remember-me off removes saved credentials");
+}
+
 }  // namespace
 
 int main() {
@@ -132,6 +218,10 @@ int main() {
     test_selection_settings_and_username_share_one_model();
     test_product_load_is_idempotent_and_reports_success_or_failure();
     test_password_reveal_tracks_only_active_hold();
+    test_remembered_credentials_are_loaded_into_the_login_model();
+    test_successful_login_saves_only_when_remember_me_is_enabled();
+    test_failed_login_does_not_overwrite_saved_credentials();
+    test_disabling_remember_me_clears_saved_credentials();
 
     if (failures == 0) {
         std::cout << "All Serein model tests passed.\n";

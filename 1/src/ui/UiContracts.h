@@ -7,7 +7,8 @@ namespace serein::ui {
 
 inline constexpr float panel_slide_seconds = 0.82F;
 inline constexpr float auth_welcome_font_size = 31.5F;
-inline constexpr float auth_brand_font_size = 22.5F;
+inline constexpr float auth_brand_font_size = 26.0F;
+inline constexpr float auth_brand_y = 48.5F;
 inline constexpr float button_text_size = 18.5F;
 inline constexpr float discovery_loading_font_size = 21.0F;
 inline constexpr float button_corner_radius = 8.0F;

@@ -5,8 +5,9 @@ namespace serein {
 AppConfig make_default_config() {
     AppConfig config;
     config.application_name = "Serein";
-    config.version = "0.4.0";
+    config.version = "0.5.0";
     config.assets.background = "Assets/valley-of-the-five-lakes-first-lake-canada-jasper-national-3840x2160-3887.jpg";
+    config.assets.promotional = "Assets/Serein Hazmat Warrior Thumbnail.png";
     config.products = {
         {"rust", "Rust", "Undetected", "05-05-2027", "Assets/Loader Games Pictures/RUST.png", "A focused survival experience profile."},
         {"warzone", "Call of Duty: Warzone", "Online", "05-05-2027", "Assets/Loader Games Pictures/CALL OF DUTY WARZONE.jpg", "A competitive deployment profile."},

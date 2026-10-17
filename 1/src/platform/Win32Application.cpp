@@ -4,6 +4,7 @@
 #include "app/Configuration.h"
 #include "integration/MockServices.h"
 #include "platform/FrameCapture.h"
+#include "platform/WindowsCredentialStore.h"
 #include "render/D3D11Renderer.h"
 #include "render/TextureStore.h"
 #include "ui/LoaderUI.h"
@@ -146,13 +147,18 @@ int Win32Application::run(const int show_command) {
 
     auto authenticator = std::make_shared<MockAuthenticator>();
     auto product_loader = std::make_shared<MockProductLoader>();
-    AppModel model{make_default_config(), authenticator, product_loader};
+    const std::optional<std::filesystem::path> capture_directory = capture_directory_from_command_line();
+    std::shared_ptr<ICredentialStore> credential_store;
+    if (!capture_directory.has_value()) {
+        credential_store = std::make_shared<WindowsCredentialStore>();
+    }
+    AppModel model{make_default_config(), authenticator, product_loader, credential_store};
     TextureStore textures;
     wchar_t executable_path[MAX_PATH]{};
     GetModuleFileNameW(nullptr, executable_path, MAX_PATH);
     const std::filesystem::path asset_root = std::filesystem::path{executable_path}.parent_path();
     ui::LoaderUI loader_ui{model, textures, renderer.device(), asset_root};
-    FrameCaptureSequence capture_sequence{capture_directory_from_command_line().value_or(std::filesystem::path{}),
+    FrameCaptureSequence capture_sequence{capture_directory.value_or(std::filesystem::path{}),
                                            capture_login_only_from_command_line()};
 
     MSG message{};

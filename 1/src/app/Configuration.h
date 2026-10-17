@@ -10,6 +10,7 @@ namespace serein {
 
 struct AssetPaths {
     std::string background;
+    std::string promotional;
 };
 
 struct ThemeConfig {

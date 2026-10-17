@@ -77,7 +77,7 @@ LoaderFrameResult LoaderUI::render(HWND window, const float delta_seconds) {
 }
 
 void LoaderUI::load_assets() {
-    promotional_art_ = textures_.load(device_, asset_root_ / "Assets/Be Ahead of All_ Serein Operative.png");
+    promotional_art_ = textures_.load(device_, asset_root_ / model_.config().assets.promotional);
     for (std::size_t index = 0; index < product_art_.size() && index < model_.config().products.size(); ++index) {
         product_art_[index] = textures_.load(device_, asset_root_ / model_.config().products[index].image_path);
     }
